@@ -32,7 +32,11 @@ let client = null;
 let sessionId = null;
 let pollTimer = null;
 let botLine = null; // current bot message in the conversation log
-let botSentences = [];
+// Spoken text of the current bot utterance, by segment id. Pipecat announces each
+// sentence before synthesis (spoken_status "new") and reports it again as it is
+// spoken ("in-progress"/"completed"). We only show the spoken part, so the log
+// matches what the user heard, even when they interrupt.
+let botSentences = new Map();
 
 // ---- REST helpers ---------------------------------------------------------------
 
@@ -204,7 +208,7 @@ async function startGame(playerName) {
       onBotStartedSpeaking: () => {
         setTalking("bot", true);
         botLine = log("bot", "…");
-        botSentences = [];
+        botSentences = new Map();
       },
       onBotStoppedSpeaking: () => {
         setTalking("bot", false);
@@ -214,11 +218,12 @@ async function startGame(playerName) {
       onBotOutput: (data) => {
         if (!botLine || !data || !data.text) return;
         if (data.aggregated_by === "word") {
-          if (botSentences.length) return; // sentence-level text already shown
+          if (botSentences.size) return; // sentence-level text already shown
           botLine.textContent = (botLine.textContent === "…" ? "" : botLine.textContent + " ") + data.text;
         } else {
-          botSentences.push(data.text);
-          botLine.textContent = botSentences.join(" ");
+          if (data.spoken_status === "new") return; // announced, not spoken yet
+          botSentences.set(data.segment_id, data.spoken_progress?.accumulated_text || data.text);
+          botLine.textContent = [...botSentences.values()].join(" ");
         }
       },
       onUserStartedSpeaking: () => setTalking("user", true),
