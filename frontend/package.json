@@ -1,0 +1,16 @@
+{
+  "name": "memory-lane-frontend",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Web client for the Memory Card voice bot. Bundled into ../frontend/app.js.",
+  "scripts": {
+    "build": "esbuild src/main.js --bundle --minify --sourcemap --format=iife --target=es2020 --outfile=app.js"
+  },
+  "dependencies": {
+    "@pipecat-ai/client-js": "1.13.1",
+    "@pipecat-ai/small-webrtc-transport": "1.10.8"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0"
+  }
+}

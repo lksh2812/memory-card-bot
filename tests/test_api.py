@@ -2,6 +2,7 @@ import pytest
 from fakeredis import FakeAsyncRedis
 from httpx import ASGITransport, AsyncClient
 
+from app.bot.pipeline import BotRegistry
 from app.cache import GameCache
 from app.db import make_session_factory
 from app.game.engine import GameRules
@@ -18,6 +19,7 @@ async def client(tmp_path):
     engine = await make_test_engine(tmp_path, "api.db")
     redis = FakeAsyncRedis()
     app.state.service = GameService(GameRepository(make_session_factory(engine)), GameCache(redis), GameRules())
+    app.state.bots = BotRegistry()
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         yield c
     await redis.aclose()
@@ -65,3 +67,9 @@ async def test_leaderboard_and_recent(client):
     r = await client.get("/api/scores/recent")
     assert r.headers["x-cache"] == "hit"
 
+
+async def test_offer_rejects_finished_session(client):
+    sid = (await client.post("/api/sessions", json={"player_name": "lokesh"})).json()["session_id"]
+    await client.post(f"/api/sessions/{sid}/end")
+    r = await client.post(f"/api/offer?session_id={sid}", json={"sdp": "x", "type": "offer"})
+    assert r.status_code == 409
