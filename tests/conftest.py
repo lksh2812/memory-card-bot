@@ -13,8 +13,10 @@ from fakeredis import FakeAsyncRedis
 
 from app.cache import GameCache
 from app.db import create_tables, make_engine, make_session_factory
+from app.game.engine import GameRules
 from app.models import Base
 from app.repository import GameRepository
+from app.service import GameService
 
 
 async def make_test_engine(tmp_path, name: str):
@@ -42,3 +44,13 @@ async def cache():
     redis = FakeAsyncRedis()
     yield GameCache(redis)
     await redis.aclose()
+
+
+@pytest_asyncio.fixture
+async def service(tmp_path):
+    engine = await make_test_engine(tmp_path, "test.db")
+    redis = FakeAsyncRedis()
+    svc = GameService(GameRepository(make_session_factory(engine)), GameCache(redis), GameRules())
+    yield svc
+    await redis.aclose()
+    await engine.dispose()
