@@ -4,7 +4,7 @@ Endpoints
     POST  /api/sessions                 create a game session for a player
     GET   /api/sessions/{id}            live game state (served from Redis)
     GET   /api/sessions/{id}/rounds     round-by-round history (Postgres)
-    POST  /api/sessions/{id}/end        end a game
+    POST  /api/sessions/{id}/end        end a game (also stops a live bot)
     GET   /api/leaderboard              best score per player (Redis sorted set)
     GET   /api/scores/recent            latest finished games
     POST  /api/offer?session_id=...     WebRTC offer -> answer; starts the bot
@@ -99,9 +99,14 @@ async def get_rounds(session_id: int, request: Request):
 
 @app.post("/api/sessions/{session_id}/end", response_model=SessionState)
 async def end_session(session_id: int, request: Request):
-    state = await _service(request).finish_session(session_id, SessionStatus.COMPLETED, "ended_by_player")
+    service = _service(request)
+    bots: BotRegistry = request.app.state.bots
+    # Record the end first: the database is the source of truth even if the bot is gone.
+    state = await service.finish_session(session_id, SessionStatus.COMPLETED, "ended_by_player")
     if state is None:
         raise HTTPException(404, "session not found")
+    # If a bot is live for this session, let it say goodbye and hang up.
+    await bots.end_game(session_id, "ended_by_player")
     return state
 
 
