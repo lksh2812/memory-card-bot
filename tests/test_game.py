@@ -3,6 +3,7 @@ import random
 import pytest
 
 from app.game.cards import DECK, generate_sequence, sequence_signature
+from app.game.engine import GameRules, GameState, apply_result
 from app.game.matching import detect_intent, evaluate, extract_cards
 
 
@@ -100,3 +101,36 @@ class TestSequences:
     def test_too_long_raises(self):
         with pytest.raises(ValueError):
             generate_sequence(len(DECK) + 1)
+
+
+class TestEngine:
+    def test_difficulty_grows_and_caps(self):
+        rules = GameRules(start_length=3, max_length=5)
+        assert [rules.length_for(n) for n in range(5)] == [3, 4, 5, 5, 5]
+
+    def test_correct_answer_scores_and_advances(self):
+        state = GameState.new(GameRules())
+        outcome = apply_result(state, length=3, correct=True)
+        assert outcome.points == 30
+        assert state.score == 30
+        assert state.next_length == 4
+        assert not outcome.game_over
+
+    def test_wrong_answers_cost_lives_until_game_over(self):
+        state = GameState.new(GameRules(lives=2))
+        assert not apply_result(state, 3, False).game_over
+        outcome = apply_result(state, 3, False)
+        assert outcome.game_over and not outcome.won
+        assert state.next_length == 3  # a miss does not make it harder
+
+    def test_clearing_max_length_wins(self):
+        state = GameState.new(GameRules(start_length=3, max_length=4))
+        apply_result(state, 3, True)
+        outcome = apply_result(state, 4, True)
+        assert outcome.game_over and outcome.won
+
+    def test_cannot_play_after_finish(self):
+        state = GameState.new(GameRules(lives=1))
+        apply_result(state, 3, False)
+        with pytest.raises(ValueError):
+            apply_result(state, 3, True)
