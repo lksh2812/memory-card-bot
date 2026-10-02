@@ -26,7 +26,9 @@ from app.game.cards import DECK, DECK_SET
 STOPWORDS = frozenset(
     "a an and the then so um umm uh uhh er ah hmm mm oh okay ok yeah yes no "
     "i im it its was is were are think like well next after first last finally "
-    "me my let see that this those these one two three".split()
+    "me my let see that this those these one two three "
+    # The game's name shows up in host lines; "lane" would fuzzy match "planet".
+    "memory lane".split()
 )
 
 FUZZY_THRESHOLD = 0.8

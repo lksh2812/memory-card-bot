@@ -28,6 +28,7 @@ from pipecat.processors.aggregators.llm_response_universal import (
 )
 from pipecat.services.deepgram.stt import DeepgramSTTService
 from pipecat.services.deepgram.tts import DeepgramTTSService
+from pipecat.services.groq.llm import GroqLLMService
 from pipecat.transports.base_transport import TransportParams
 from pipecat.transports.smallwebrtc.connection import SmallWebRTCConnection
 from pipecat.transports.smallwebrtc.transport import SmallWebRTCTransport
@@ -68,8 +69,15 @@ class BotRegistry:
 
 
 def build_host(settings: Settings) -> HostVoice:
-    # Template lines for now; the LLM host is wired in later.
-    return HostVoice(llm=None)
+    llm = None
+    if settings.groq_api_key:
+        llm = GroqLLMService(
+            api_key=settings.groq_api_key,
+            settings=GroqLLMService.Settings(model=settings.groq_model, reasoning_effort="low"),
+        )
+    else:
+        logger.warning("GROQ_API_KEY not set: host lines will use templates only")
+    return HostVoice(llm)
 
 
 async def run_bot(

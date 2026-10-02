@@ -33,6 +33,9 @@ class TestExtractCards:
     def test_short_words_do_not_fuzzy_match(self):
         assert extract_cards("and the then") == []
 
+    def test_game_name_is_not_a_card(self):
+        assert extract_cards("Thanks for playing Memory Lane!") == []
+
 
 class TestEvaluate:
     expected = ["apple", "river", "tiger"]
