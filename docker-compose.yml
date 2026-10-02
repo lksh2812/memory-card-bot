@@ -1,3 +1,14 @@
+# Two ways to run:
+#
+#   docker compose up -d                       Postgres + Redis only; run the app with uvicorn
+#   docker compose --profile full up --build   everything, including the app
+#
+# The app uses host networking because WebRTC sends audio over UDP on random
+# ports that a normal port mapping can't cover. Works out of the box on Linux;
+# Docker Desktop (Mac/Windows) needs "Enable host networking" in Settings >
+# Resources > Network (Docker Desktop 4.34+). If that isn't available, run the
+# app with uvicorn instead.
+
 services:
   postgres:
     image: postgres:16-alpine
@@ -24,6 +35,23 @@ services:
       interval: 3s
       timeout: 3s
       retries: 10
+
+  app:
+    profiles: ["full"]
+    build: .
+    network_mode: host
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      # Host networking: reach Postgres and Redis through their published ports.
+      DATABASE_URL: postgresql+asyncpg://memory:memory@localhost:5432/memory_game
+      REDIS_URL: redis://localhost:6379/0
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
 volumes:
   pgdata:
