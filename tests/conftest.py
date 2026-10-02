@@ -1,6 +1,6 @@
 """Test fixtures.
 
-By default tests use SQLite, so they run anywhere. Set TEST_DATABASE_URL to run
+By default tests use SQLite and an in-memory fake Redis, so they run anywhere. Set TEST_DATABASE_URL to run
 the same tests against real Postgres, e.g.
 
     TEST_DATABASE_URL=postgresql+asyncpg://memory:memory@localhost:5432/memory_game pytest
@@ -9,7 +9,9 @@ the same tests against real Postgres, e.g.
 import os
 
 import pytest_asyncio
+from fakeredis import FakeAsyncRedis
 
+from app.cache import GameCache
 from app.db import create_tables, make_engine, make_session_factory
 from app.models import Base
 from app.repository import GameRepository
@@ -33,3 +35,10 @@ async def repo(tmp_path):
     engine = await make_test_engine(tmp_path, "test.db")
     yield GameRepository(make_session_factory(engine))
     await engine.dispose()
+
+
+@pytest_asyncio.fixture
+async def cache():
+    redis = FakeAsyncRedis()
+    yield GameCache(redis)
+    await redis.aclose()
