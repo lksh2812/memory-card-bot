@@ -1,0 +1,15 @@
+pipecat-ai[webrtc,deepgram,groq,silero]==1.12.0
+fastapi>=0.115
+uvicorn[standard]>=0.30
+sqlalchemy[asyncio]>=2.0.30
+asyncpg>=0.29
+redis>=5.0
+python-dotenv>=1.0
+loguru>=0.7
+
+# tests
+pytest>=8
+pytest-asyncio>=0.24
+aiosqlite>=0.20
+fakeredis>=2.26
+httpx>=0.27
