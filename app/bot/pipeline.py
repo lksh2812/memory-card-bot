@@ -31,11 +31,14 @@ from pipecat.services.deepgram.tts import DeepgramTTSService
 from pipecat.transports.base_transport import TransportParams
 from pipecat.transports.smallwebrtc.connection import SmallWebRTCConnection
 from pipecat.transports.smallwebrtc.transport import SmallWebRTCTransport
+from pipecat.turns.user_start import MinWordsUserTurnStartStrategy
+from pipecat.turns.user_turn_strategies import UserTurnStrategies
 from pipecat.workers.runner import WorkerRunner
 
 from app.bot.frames import EndGameFrame, StartGameFrame
 from app.bot.game_processor import MemoryGameProcessor
 from app.bot.host import HostVoice
+from app.bot.turn_strategy import SequenceAwareTurnStopStrategy
 from app.config import Settings
 from app.service import GameService
 
@@ -96,7 +99,17 @@ async def run_bot(
     context = LLMContext()
     user_aggregator, assistant_aggregator = LLMContextAggregatorPair(
         context,
-        user_params=LLMUserAggregatorParams(vad_analyzer=SileroVADAnalyzer()),
+        user_params=LLMUserAggregatorParams(
+            vad_analyzer=SileroVADAnalyzer(),
+            user_turn_strategies=UserTurnStrategies(
+                # While the bot is talking, it takes 2+ words to interrupt it, so
+                # "okay" or "hmm" doesn't restart a round. When the bot is quiet,
+                # one word is enough to start a turn.
+                start=[MinWordsUserTurnStartStrategy(min_words=2)],
+                # Silence window adapts to how many cards we've heard so far.
+                stop=[SequenceAwareTurnStopStrategy(expected_cards=game.expected_card_count)],
+            ),
+        ),
     )
 
     pipeline = Pipeline(
