@@ -3,7 +3,7 @@
 By default tests use SQLite and an in-memory fake Redis, so they run anywhere. Set TEST_DATABASE_URL to run
 the same tests against real Postgres, e.g.
 
-    TEST_DATABASE_URL=postgresql+asyncpg://memory:memory@localhost:5432/memory_game pytest
+    TEST_DATABASE_URL=postgresql+asyncpg://postgres:password@localhost:5432/memory_game_test pytest
 """
 
 import os

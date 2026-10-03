@@ -9,12 +9,13 @@ host lines), FastAPI, PostgreSQL and Redis.
 
 ## Quick start
 
-Requirements: Python 3.11+, Docker, a microphone, and a free
+Requirements: Python 3.11+, PostgreSQL and Redis (or Docker to run them), a microphone, and a free
 [Deepgram](https://console.deepgram.com) API key. A [Groq](https://console.groq.com)
 key is optional (without it the host uses template lines).
 
 ```bash
-# 1. Postgres and Redis
+# 1. Postgres and Redis. Skip if you already run them; just create an empty
+#    database (`createdb memory_game`), the app creates its tables on startup.
 docker compose up -d
 
 # 2. Python deps
@@ -22,7 +23,7 @@ python -m venv .venv && source .venv/bin/activate      # Windows: .venv\Scripts\
 pip install -r requirements.txt
 
 # 3. Config
-cp .env.example .env        # then add DEEPGRAM_API_KEY (and GROQ_API_KEY)
+cp .env.example .env        # add DEEPGRAM_API_KEY (and GROQ_API_KEY); point DATABASE_URL / REDIS_URL at your servers
 
 # 4. Run
 uvicorn app.main:app --port 7860
@@ -30,20 +31,6 @@ uvicorn app.main:app --port 7860
 
 Open http://localhost:7860, enter a name, allow the microphone, and play.
 Headphones help: the bot hears itself less, which means fewer false interruptions.
-
-### Or run everything in Docker
-
-```bash
-cp .env.example .env        # add the keys
-docker compose --profile full up --build
-```
-
-The app container uses host networking, because WebRTC sends audio over UDP on
-random ports that a normal port mapping can't cover. This works as is on Linux.
-On Docker Desktop (Mac/Windows), turn on Settings > Resources > Network >
-"Enable host networking" (Docker Desktop 4.34+); if that option isn't there, use
-the uvicorn steps above. Plain `docker compose up -d` still starts only Postgres
-and Redis.
 
 If your network blocks Daily's CDN (the WebRTC client loads a small helper from
 it), open http://localhost:7860/?media=native instead, which uses the browser's
@@ -56,12 +43,13 @@ The frontend is prebuilt (`frontend/app.js`). Node is only needed if you change
 
 ```bash
 pytest                                  # SQLite + in-memory Redis, no keys needed
-TEST_DATABASE_URL=postgresql+asyncpg://memory:memory@localhost:5432/memory_game_test pytest   # real Postgres
+TEST_DATABASE_URL=postgresql+asyncpg://postgres:password@localhost:5432/memory_game_test pytest   # real Postgres
 ```
 
 `TEST_DATABASE_URL` must point at a throwaway database: the fixtures drop and
-recreate every table. Create it once with
-`docker compose exec postgres createdb -U memory memory_game_test`.
+recreate every table. Create it once with `createdb memory_game_test`, or
+`docker compose exec postgres createdb -U postgres memory_game_test` if you use
+the compose file.
 
 77 tests cover card matching, game rules, the repository (including ten
 concurrent attempts to score the same round), the Redis cache (including Redis

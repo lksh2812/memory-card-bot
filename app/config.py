@@ -16,7 +16,7 @@ def _int(name: str, default: int) -> int:
 class Settings:
     database_url: str = field(
         default_factory=lambda: os.getenv(
-            "DATABASE_URL", "postgresql+asyncpg://memory:memory@localhost:5432/memory_game"
+            "DATABASE_URL", "postgresql+asyncpg://postgres:password@localhost:5432/memory_game"
         )
     )
     redis_url: str = field(default_factory=lambda: os.getenv("REDIS_URL", "redis://localhost:6379/0"))
